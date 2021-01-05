@@ -5,14 +5,17 @@ import React, {
   FC,
   FormEvent,
   SyntheticEvent,
-  useEffect,
+  useCallback,
   useState,
 } from "react";
+import ReactHotkeys from "react-hot-keys";
 import {
   Button,
+  Container,
   DropdownProps,
   Form,
   Grid,
+  Header,
   Input,
   Select,
   Table,
@@ -23,6 +26,16 @@ import templateModels, {
 } from "../../resources/templates/templateModels";
 
 const DocTemplater: FC = () => {
+  const [modelFileSet, setModelFileSet] = useState<FileList | null>(null);
+  const [itemsData, setItemsData] = useState<any[]>([]);
+  const [
+    modelTemplate,
+    setModelTemplate,
+  ] = useState<ModelTemplateConfig | null>(null);
+  const [modelTemplateName, setModelTemplateName] = useState<string | null>(
+    null
+  );
+
   const loadFileAsBuffer = async (file: File) => {
     return await new Promise<ArrayBuffer>((resolve) => {
       const reader = new FileReader();
@@ -67,7 +80,7 @@ const DocTemplater: FC = () => {
   }
 
   const handleTemplateChange = (
-    e: SyntheticEvent<HTMLElement, Event>,
+    _e: SyntheticEvent<HTMLElement, Event>,
     data: DropdownProps
   ) => {
     if (!data) return;
@@ -75,13 +88,14 @@ const DocTemplater: FC = () => {
     setModelTemplateName(String(data.value));
   };
 
-  const handlePaste = () => {
-    document.body.focus();
+  const handlePaste = useCallback(() => {
     navigator.clipboard.readText().then((text) => {
+      console.log(text);
       const data = pasteParsers.FFParser(text);
       setItemsData([...itemsData, data]);
+      console.log(itemsData);
     });
-  };
+  }, [itemsData]);
 
   const handleDeleteItem = (index: number) => {
     const a = [...itemsData];
@@ -89,87 +103,70 @@ const DocTemplater: FC = () => {
     setItemsData(a);
   };
 
-  const [modelFileSet, setModelFileSet] = useState<FileList | null>(null);
-  const [itemsData, setItemsData] = useState<any[]>([]);
-  const [
-    modelTemplate,
-    setModelTemplate,
-  ] = useState<ModelTemplateConfig | null>(null);
-  const [modelTemplateName, setModelTemplateName] = useState<string | null>(
-    null
-  );
-
-  useEffect(() => {}, []);
-
   return (
-    <Grid textAlign="center" style={{ height: "100vh" }}>
-      <Grid.Column>
-        <Grid.Row>
-          <Grid.Column>
-            <Grid.Row>
-              <Grid.Column>
-                <Form onSubmit={handleSubmit}>
-                  <Input
-                    onChange={(e) =>
-                      e.currentTarget.files &&
-                      setModelFileSet(e.currentTarget.files)
-                    }
-                    placeholder="Escolha o documento modelo"
-                    idFor="modelfile"
-                    type="file"
-                    accept=".doc, .docx"
-                    multiple={false}
-                  />
-                  <Button disabled={!modelFileSet} type="submit">
-                    Gerar Documentos
-                  </Button>
-                </Form>
-              </Grid.Column>
-              <Grid.Column>
-                <Select
-                  onChange={handleTemplateChange}
-                  value={modelTemplateName || "Selecione um modelo"}
-                  placeholder="Selecione um modelo"
-                  options={Object.keys(templateModels).map((e) => ({
-                    text: e,
-                    value: e,
-                  }))}
-                />
-
-                <Button onClick={() => handlePaste()}>Colar FF</Button>
-              </Grid.Column>
-            </Grid.Row>
-          </Grid.Column>
-        </Grid.Row>
-        <Grid.Row style={{ overflowX: "scroll", padding: "0 1em" }}>
-          <Table celled>
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell>Ação</Table.HeaderCell>
-                {modelTemplate?.keys.map((header) => (
-                  <Table.HeaderCell key={header}>{header}</Table.HeaderCell>
-                ))}
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {itemsData.map((data, index) => (
-                <Table.Row key={index}>
-                  <Table.Cell>
-                    <Button onClick={() => handleDeleteItem(index)}>
-                      Deletar
-                    </Button>
-                  </Table.Cell>
-
+    <ReactHotkeys keyName="ctrl+v" onKeyDown={handlePaste}>
+      <Header as="h1">Gerador de documentos</Header>
+      <Grid textAlign="center" style={{ height: "100vh" }}>
+        <Grid.Column>
+          <Grid.Row as={Grid} columns={2}>
+            <Grid.Column as={Form} onSubmit={handleSubmit}>
+              <Input
+                onChange={(e) =>
+                  e.currentTarget.files &&
+                  setModelFileSet(e.currentTarget.files)
+                }
+                placeholder="Escolha o documento modelo"
+                type="file"
+                accept=".doc, .docx"
+                multiple={false}
+              />
+              <Button disabled={!modelFileSet} type="submit">
+                Gerar Documentos
+              </Button>
+            </Grid.Column>
+            <Grid.Column>
+              <Select
+                onChange={handleTemplateChange}
+                value={modelTemplateName || "Selecione um modelo"}
+                placeholder="Selecione um modelo"
+                options={Object.keys(templateModels).map((e) => ({
+                  text: e,
+                  value: e,
+                }))}
+              />
+              <Button onClick={() => handlePaste()}>Colar FF (CTRL + V)</Button>
+            </Grid.Column>
+          </Grid.Row>
+          <Grid.Row style={{ overflowX: "scroll", padding: "0 1em" }}>
+            <Table celled>
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell>Ação</Table.HeaderCell>
                   {modelTemplate?.keys.map((header) => (
-                    <Table.Cell key={header}>{data[header]}</Table.Cell>
+                    <Table.HeaderCell key={header}>{header}</Table.HeaderCell>
                   ))}
                 </Table.Row>
-              ))}
-            </Table.Body>
-          </Table>
-        </Grid.Row>
-      </Grid.Column>
-    </Grid>
+              </Table.Header>
+              <Table.Body>
+                {itemsData.map((data, index) => (
+                  <Table.Row key={index}>
+                    <Table.Cell>
+                      <Button onClick={() => handleDeleteItem(index)}>
+                        Deletar
+                      </Button>
+                    </Table.Cell>
+
+                    {modelTemplate?.keys.map((header) => (
+                      <Table.Cell key={header}>{data[header]}</Table.Cell>
+                    ))}
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          </Grid.Row>
+        </Grid.Column>
+      </Grid>
+    </ReactHotkeys>
   );
 };
 

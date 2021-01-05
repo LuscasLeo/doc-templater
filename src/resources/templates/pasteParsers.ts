@@ -5,8 +5,6 @@ const pasteParsers = {
       .trim()
       .split("\n")
       .map((str) => str.trim());
-    console.log(JSON.stringify(splitted));
-    console.log(splitted);
     const getValue = (key: string) => {
       return splitted.indexOf(key) === -1
         ? ""
