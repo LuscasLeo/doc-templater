@@ -89,7 +89,6 @@ const DocTemplater: FC = () => {
     setItemsData(a);
   };
 
-  const [headerInput, setHeaderInput] = useState("");
   const [modelFileSet, setModelFileSet] = useState<FileList | null>(null);
   const [itemsData, setItemsData] = useState<any[]>([]);
   const [
